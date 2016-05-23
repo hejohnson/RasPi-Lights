@@ -1,15 +1,33 @@
 #!/usr/bin/env python
 
-import pigpiod
-import socket
+import pigpio
+import socket, select
 
-s = socket.socket(socket.AF_INET, socket.SOC_STREAM)
+connected = False
 
-s.bind((socket.gethostname(), 50007))
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('', 50007))
 
-s.listen()
-(c_sock, addr) = s.accept()
+pi = pigpio.pi()
+pi.set_PWM_frequency(14, 50)
+
 while True:
-    read_sockets, write_sockets, error_sockets = select.select(s, [], [])
-    data = read_socket[0].recv(4096)
-    print data
+    #s.bind(('', 50007))
+    s.listen(1)
+    (c_sock, addr) = s.accept()
+    connected = True
+    while connected:
+        #read_sockets, write_sockets, error_sockets = select.select([s], [], [])
+        print "Reading: "
+        data = c_sock.recv(4096)#read_sockets[0].recv(4096)
+        if not data:
+            s.shutdown(socket.SHUT_RDWR)
+            connected = False
+        else:
+            if (data == "open"):
+		pi.set_PWM_dutycycle(14, 0)
+            elif (data == "close"):
+                pi.set_PWM_dutycycle(14, 255)
+            print data
+
